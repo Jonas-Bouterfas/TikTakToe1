@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1015340726625",
+    "project_id": "tiktaktoenew",
+    "storage_bucket": "tiktaktoenew.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1015340726625:android:35a87b86ce2fa8dbceed20",
+        "android_client_info": {
+          "package_name": "com.example.tiktaktoe"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA55Nh5jYo_3pgkhDJMEyMPo073DTeIP04"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
