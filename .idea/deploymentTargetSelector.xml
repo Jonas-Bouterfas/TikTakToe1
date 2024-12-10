@@ -8,12 +8,12 @@
           <targets>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=/Users/bojo20lh/.android/avd/Pixel_9_Pro_API_35.avd" />
+                <DeviceId pluginId="LocalEmulator" identifier="path=/Users/bojo20lh/.android/avd/Medium_Phone.avd" />
               </handle>
             </Target>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=/Users/bojo20lh/.android/avd/Medium_Phone.avd" />
+                <DeviceId pluginId="LocalEmulator" identifier="path=/Users/bojo20lh/.android/avd/Pixel_9_Pro_API_35.avd" />
               </handle>
             </Target>
           </targets>

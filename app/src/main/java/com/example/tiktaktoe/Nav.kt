@@ -118,40 +118,40 @@ fun NewPlayerScreen(navController: NavController, model: GameModel) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun LobbyScreen(navController: NavController, model: GameModel) {
     val players by model.playerMap.asStateFlow().collectAsStateWithLifecycle()
     val games by model.gameMap.asStateFlow().collectAsStateWithLifecycle()
 
+    // Snackbar state
+    val snackbarHostState = remember { SnackbarHostState() }
+    var incomingGameId by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(games) {
         games.forEach { (gameId, game) ->
-            // TODO: Popup with accept invite?
-            if ((game.player1Id == model.localPlayerId.value || game.player2Id == model.localPlayerId.value)
+            if (game.player2Id == model.localPlayerId.value && game.gameState == "invite") {
+                // Notify about the challenge
+                incomingGameId = gameId
+                snackbarHostState.showSnackbar("You have been challenged by ${players[game.player1Id]?.name ?: "Unknown"}!")
+            } else if ((game.player1Id == model.localPlayerId.value || game.player2Id == model.localPlayerId.value)
                 && (game.gameState == "player1_turn" || game.gameState == "player2_turn")) {
                 navController.navigate("game/${gameId}")
             }
         }
     }
 
-    var playerName = "Unknown?"
-    players[model.localPlayerId.value]?.let {
-        playerName = it.name
-    }
-
 
     Scaffold(
-        topBar = { TopAppBar(title =  { Text("TicTacToe - $playerName")}) }
+        topBar = { TopAppBar(title = { Text("TicTacToe - ${players[model.localPlayerId.value]?.name ?: "Unknown"}") }) },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.padding(innerPadding)) {
             items(players.entries.toList()) { (documentId, player) ->
-                if (documentId != model.localPlayerId.value) { // Don't show yourself
+                if (documentId != model.localPlayerId.value) {
                     ListItem(
-                        headlineContent = {
-                            Text("Player Name: ${player.name}")
-                        },
-                        supportingContent = {
-                            Text("Status: ...")
-                        },
+                        headlineContent = { Text("Player Name: ${player.name}") },
+                        supportingContent = { Text("Status: ...") },
                         trailingContent = {
                             var hasGame = false
                             games.forEach { (gameId, game) ->
@@ -160,7 +160,7 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                                     Text("Waiting for accept...")
                                     hasGame = true
                                 } else if (game.player2Id == model.localPlayerId.value
-                                    && game.player1Id == documentId  && game.gameState == "invite") {
+                                    && game.player1Id == documentId && game.gameState == "invite") {
                                     Button(onClick = {
                                         model.db.collection("games").document(gameId)
                                             .update("gameState", "player1_turn")
@@ -168,10 +168,7 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                                                 navController.navigate("game/${gameId}")
                                             }
                                             .addOnFailureListener {
-                                                Log.e(
-                                                    "Error",
-                                                    "Error updating game: $gameId"
-                                                )
+                                                Log.e("Error", "Error updating game: $gameId")
                                             }
                                     }) {
                                         Text("Accept invite")
@@ -185,9 +182,6 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                                         .add(Game(gameState = "invite",
                                             player1Id = model.localPlayerId.value!!,
                                             player2Id = documentId))
-                                        .addOnSuccessListener { documentRef ->
-                                            // TODO: Navigate?
-                                        }
                                 }) {
                                     Text("Challenge")
                                 }
@@ -199,6 +193,7 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -244,8 +239,7 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
 
                     else -> {
 
-                        val myTurn =
-                            game.gameState == "player1_turn" && game.player1Id == model.localPlayerId.value || game.gameState == "player2_turn" && game.player2Id == model.localPlayerId.value
+                        val myTurn = game.gameState == "player1_turn" && game.player1Id == model.localPlayerId.value || game.gameState == "player2_turn" && game.player2Id == model.localPlayerId.value
                         val turn = if (myTurn) "Your turn!" else "Wait for other player"
                         Text(turn, style = MaterialTheme.typography.headlineMedium)
                         Spacer(modifier = Modifier.padding(20.dp))
@@ -254,6 +248,15 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
                         Text("Player 2: ${players[game.player2Id]!!.name}")
                         Text("State: ${game.gameState}")
                         Text("GameId: ${gameId}")
+
+                        Spacer(modifier = Modifier.padding(20.dp))
+
+                        GameBoard(
+                            game = game,
+                            model = model,
+                            gameId = gameId,
+                            myTurn = myTurn
+                        )
                     }
                 }
 
@@ -304,5 +307,113 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
             "Error Game not found: $gameId"
         )
         navController.navigate("lobby")
+    }
+}
+
+@Composable
+fun GameBoard(
+    game: Game,
+    model: GameModel,
+    gameId: String?,
+    myTurn: Boolean
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Turn indicator
+        Text(
+            text = if (myTurn) "Your turn!" else "Wait for other player",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(8.dp),
+            color = if (myTurn) Color.Green else Color.Gray
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Game grid
+        Box(
+            modifier = Modifier
+                .aspectRatio(1f) // Ensure square grid
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                for (i in 0 until rows) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        for (j in 0 until cols) {
+                            val index = i * cols + j
+                            Button(
+                                onClick = {
+                                    if (game.gameBoard[index] == 0 && myTurn && game.gameState !in listOf("player1_won", "player2_won", "draw")) {
+                                        model.checkGameState(gameId, index)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .padding(4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (game.gameState in listOf("player1_won", "player2_won", "draw")) Color.Gray else Color.LightGray
+                                )
+                            ) {
+                                when (game.gameBoard[index]) {
+                                    1 -> Text(
+                                        text = "X",
+                                        style = MaterialTheme.typography.displayLarge,
+                                        color = Color.Red
+                                    )
+                                    2 -> Text(
+                                        text = "O",
+                                        style = MaterialTheme.typography.displayLarge,
+                                        color = Color.Blue
+                                    )
+                                    else -> Text("")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+@Composable
+fun ReadyPopup(gameId: String?, game: Game, model: GameModel) {
+    var showReadyPopup by remember { mutableStateOf(true) }
+
+    if (showReadyPopup && gameId != null) {
+        AlertDialog(
+            onDismissRequest = { showReadyPopup = false },
+            title = { Text("Ready to Start?") },
+            text = { Text("Click 'Ready' to signal you're ready to start the game.") },
+            confirmButton = {
+                Button(onClick = {
+                    val isPlayer1 = game.player1Id == model.localPlayerId.value
+                    model.db.collection("games").document(gameId)
+                        .update(if (isPlayer1) "player1Ready" else "player2Ready", true)
+                        .addOnSuccessListener {
+                            showReadyPopup = false
+                        }
+                }) {
+                    Text("Ready")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showReadyPopup = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

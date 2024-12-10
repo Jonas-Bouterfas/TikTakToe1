@@ -29,7 +29,9 @@ data class Game(
     var gameBoard: List<Int> = List(9) { 0 }, // 0: empty, 1: player1's move, 2: player2's move
     var gameState: String = "invite", // Possible values: "invite", "player1_turn", "player2_turn" "player1_won", "player2_won", "draw"
     var player1Id: String = "",
-    var player2Id: String = ""
+    var player2Id: String = "",
+    var player1Ready: Boolean = false,
+    var player2Ready: Boolean = false
 )
 
 const val rows = 3
@@ -106,28 +108,25 @@ class GameModel: ViewModel() {
 
 
     fun checkGameState(gameId: String?, cell: Int) {
-
         if (gameId != null) {
             val game: Game? = gameMap.value[gameId]
             if (game != null) {
-
-                val myTurn = game.gameState == "player1_turn" && game.player1Id == localPlayerId.value || game.gameState == "player2_turn" && game.player2Id == localPlayerId.value
+                val myTurn = game.gameState == "player1_turn" && game.player1Id == localPlayerId.value ||
+                        game.gameState == "player2_turn" && game.player2Id == localPlayerId.value
                 if (!myTurn) return
 
                 val list: MutableList<Int> = game.gameBoard.toMutableList()
 
+                // Check if the selected cell is already occupied
+                if (list[cell] != 0) return // Exit if the cell is not empty
+
                 if (game.gameState == "player1_turn") {
                     list[cell] = 1
-
                 } else if (game.gameState == "player2_turn") {
                     list[cell] = 2
                 }
-                var turn = ""
-                if (game.gameState == "player1_turn") {
-                    turn = "player2_turn"
-                } else {
-                    turn = "player1_turn"
-                }
+
+                var turn = if (game.gameState == "player1_turn") "player2_turn" else "player1_turn"
 
                 val winner = checkWinner(list.toList())
                 if (winner == 1) {
@@ -146,6 +145,7 @@ class GameModel: ViewModel() {
             }
         }
     }
+
 }
 
 
