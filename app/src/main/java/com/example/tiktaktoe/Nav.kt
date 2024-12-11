@@ -155,26 +155,40 @@ fun LobbyScreen(navController: NavController, model: GameModel) {
                         trailingContent = {
                             var hasGame = false
                             games.forEach { (gameId, game) ->
-                                if (game.player1Id == model.localPlayerId.value
+                                if (game.player2Id == model.localPlayerId.value
                                     && game.player1Id == documentId && game.gameState == "invite") {
-                                    Text("Waiting for accept...")
-                                    hasGame = true
-                                } else if (game.player2Id == model.localPlayerId.value
-                                    && game.player1Id == documentId && game.gameState == "invite") {
-                                    Button(onClick = {
-                                        model.db.collection("games").document(gameId)
-                                            .update("gameState", "player1_turn")
-                                            .addOnSuccessListener {
-                                                navController.navigate("game/${gameId}")
-                                            }
-                                            .addOnFailureListener {
-                                                Log.e("Error", "Error updating game: $gameId")
-                                            }
-                                    }) {
-                                        Text("Accept invite")
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        // Accept Button
+                                        Button(onClick = {
+                                            model.db.collection("games").document(gameId)
+                                                .update("gameState", "player1_turn")
+                                                .addOnSuccessListener {
+                                                    navController.navigate("game/${gameId}")
+                                                }
+                                                .addOnFailureListener {
+                                                    Log.e("Error", "Error updating game: $gameId")
+                                                }
+                                        }) {
+                                            Text("Accept")
+                                        }
+
+                                        // Decline Button
+                                        Button(onClick = {
+                                            model.db.collection("games").document(gameId)
+                                                .delete()
+                                                .addOnSuccessListener {
+                                                    Log.d("GameDecline", "Game challenge declined and removed.")
+                                                }
+                                                .addOnFailureListener {
+                                                    Log.e("Error", "Error declining game: $gameId")
+                                                }
+                                        }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
+                                            Text("Decline")
+                                        }
                                     }
                                     hasGame = true
                                 }
+
                             }
                             if (!hasGame) {
                                 Button(onClick = {
@@ -367,19 +381,26 @@ fun GameBoard(
                                     containerColor = if (game.gameState in listOf("player1_won", "player2_won", "draw")) Color.Gray else Color.LightGray
                                 )
                             ) {
+                                val isWinningMove = when {
+                                    game.gameState == "player1_won" && game.gameBoard[index] == 1 -> true
+                                    game.gameState == "player2_won" && game.gameBoard[index] == 2 -> true
+                                    else -> false
+                                }
+
                                 when (game.gameBoard[index]) {
                                     1 -> Text(
                                         text = "X",
                                         style = MaterialTheme.typography.displayLarge,
-                                        color = Color.Red
+                                        color = if (isWinningMove) Color.Green else Color.Red // Highlight winning moves
                                     )
                                     2 -> Text(
                                         text = "O",
                                         style = MaterialTheme.typography.displayLarge,
-                                        color = Color.Blue
+                                        color = if (isWinningMove) Color.Green else Color.Blue // Highlight winning moves
                                     )
                                     else -> Text("")
                                 }
+
                             }
                         }
                     }
