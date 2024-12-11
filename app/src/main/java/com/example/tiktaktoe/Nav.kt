@@ -232,10 +232,11 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
             ) {
                 when (game.gameState) {
                     "player1_won", "player2_won", "draw" -> {
-
+                        // Game over header
                         Text("Game over!", style = MaterialTheme.typography.headlineMedium)
                         Spacer(modifier = Modifier.padding(20.dp))
 
+                        // Display the result
                         if (game.gameState == "draw") {
                             Text("It's a Draw!", style = MaterialTheme.typography.headlineMedium)
                         } else {
@@ -244,16 +245,30 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
                                 style = MaterialTheme.typography.headlineMedium
                             )
                         }
-                        Button(onClick = {
-                            navController.navigate("lobby")
-                        }) {
+
+                        // Display the final game board
+                        Spacer(modifier = Modifier.height(16.dp))
+                        GameBoard(
+                            game = game,
+                            model = model,
+                            gameId = gameId,
+                            myTurn = false // Turn is irrelevant as the game is over
+                        )
+
+                        // Add the Back to Lobby button
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { navController.navigate("lobby") },
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        ) {
                             Text("Back to lobby")
                         }
                     }
 
-                    else -> {
 
-                        val myTurn = game.gameState == "player1_turn" && game.player1Id == model.localPlayerId.value || game.gameState == "player2_turn" && game.player2Id == model.localPlayerId.value
+                    else -> {
+                        val myTurn = game.gameState == "player1_turn" && game.player1Id == model.localPlayerId.value ||
+                                game.gameState == "player2_turn" && game.player2Id == model.localPlayerId.value
                         val turn = if (myTurn) "Your turn!" else "Wait for other player"
                         Text(turn, style = MaterialTheme.typography.headlineMedium)
                         Spacer(modifier = Modifier.padding(20.dp))
@@ -273,6 +288,8 @@ fun GameScreen(navController: NavController, model: GameModel, gameId: String?) 
                         )
                     }
                 }
+
+
 
 
                 Spacer(modifier = Modifier.padding(20.dp))
